@@ -1,0 +1,22 @@
+{
+  "interpreterSettings": {
+    "flink": {
+      "id": "flink",
+      "name": "flink",
+      "group": "flink",
+      "class": "org.apache.zeppelin.flink.FlinkInterpreter",
+      "properties": {
+        "flink.execution.mode": "gateway",
+        "flink.execution.gateway.address": "sql-gateway",
+        "flink.execution.gateway.port": "8083",
+        "flink.parallelism": "1",
+        "zeppelin.interpreter.output.limit": "102400"
+      },
+      "option": {
+        "remote": true,
+        "perNote": false,
+        "perUser": false
+      }
+    }
+  }
+}

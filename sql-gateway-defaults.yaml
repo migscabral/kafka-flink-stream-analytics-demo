@@ -1,0 +1,17 @@
+execution:
+  type: streaming
+  planner: blink
+
+sql-gateway:
+  endpoint:
+    rest:
+      address: "0.0.0.0"
+      port: 8083
+
+catalogs:
+  - name: default
+    type: generic_in_memory
+
+modules:
+  - name: core
+    type: core
