@@ -5,7 +5,7 @@ services:
   # Kafka (KRaft mode)
   # ------------------------------
   broker:
-    image: confluentinc/cp-kafka:7.6.1
+    image: apache/kafka:4.1.1
     container_name: broker
     networks:
       - flink-net
@@ -22,12 +22,13 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       CLUSTER_ID: "w8b7yqJdTLe7H2C6P4oC0A"
+      PATH: "/opt/kafka/bin:$PATH"
 
   # ------------------------------
   # Flink JobManager
   # ------------------------------
   jobmanager:
-    image: flink:1.18
+    image: flink:1.17.2-scala_2.12
     container_name: jobmanager
     networks:
       - flink-net
@@ -38,37 +39,44 @@ services:
       - "6123:6123"
     command: jobmanager
     environment:
-      - |
-        FLINK_PROPERTIES=
+      FLINK_PROPERTIES: |
         jobmanager.rpc.address: jobmanager
         jobmanager.memory.process.size: 1600m
-        taskmanager.memory.process.size: 1600m
         parallelism.default: 1
         execution.checkpointing.interval: 10s
+        rest.address: jobmanager
+        rest.port: 8081
+      FLINK_LOG_LEVEL: DEBUG
+    volumes:
+      - ./jars/flink-sql-connector-kafka-1.17.2.jar:/opt/flink/lib/flink-sql-connector-kafka-1.17.2.jar
 
   # ------------------------------
   # Flink TaskManager
   # ------------------------------
   taskmanager:
-    image: flink:1.18
-    container_name: taskmanager
+    image: flink:1.17.2-scala_2.12
+    # container_name: taskmanager
     networks:
       - flink-net
     depends_on:
       - jobmanager
     command: taskmanager
     environment:
-      - |
-        FLINK_PROPERTIES=
+      FLINK_PROPERTIES: |
         jobmanager.rpc.address: jobmanager
+        taskmanager.host: taskmanager
+        taskmanager.memory.process.size: 1600m
         taskmanager.numberOfTaskSlots: 2
         parallelism.default: 1
+      FLINK_LOG_LEVEL: DEBUG
+    volumes:
+      - ./jars/flink-sql-connector-kafka-1.17.2.jar:/opt/flink/lib/flink-sql-connector-kafka-1.17.2.jar
 
   # ------------------------------
   # Flink SQL Gateway
   # ------------------------------
   sql-gateway:
-    image: flink:1.18
+    image: flink:1.17.2-scala_2.12
     container_name: sql-gateway
     networks:
       - flink-net
@@ -77,16 +85,24 @@ services:
     depends_on:
       - jobmanager
       - taskmanager
+    command: /opt/flink/bin/sql-gateway.sh start-foreground
+    environment:
+      FLINK_PROPERTIES: |
+        sql-gateway.endpoint.type: rest
+        sql-gateway.endpoint.rest.address: 0.0.0.0
+        sql-gateway.endpoint.rest.port: 8083
+        jobmanager.rpc.address: jobmanager
+        rest.address: jobmanager
+        rest.port: 8081
+      FLINK_LOG_LEVEL: DEBUG
     volumes:
-      - ./sql-gateway-defaults.yaml:/opt/flink/conf/sql-gateway-defaults.yaml
-    command: bash -c "/opt/flink/bin/sql-gateway.sh start-foreground --gateway-conf /opt/flink/conf/sql-gateway-defaults.yaml"
-
+      - ./jars/flink-sql-connector-kafka-1.17.2.jar:/opt/flink/lib/flink-sql-connector-kafka-1.17.2.jar
 
   # ------------------------------
   # Zeppelin
   # ------------------------------
   zeppelin:
-    image: apache/zeppelin:0.11.2
+    image: zeppelin-flink:0.11.2-1.17.2
     container_name: zeppelin
     networks:
       - flink-net
@@ -94,8 +110,35 @@ services:
       - "8082:8080"
     depends_on:
       - sql-gateway
+    entrypoint: >
+      bash -c "
+        # FIX: Grant execute permission to the mounted script
+        chmod +x /tmp/setup_flink_interpreter.sh
+
+        # 1. Start Zeppelin in background
+        /opt/zeppelin/bin/zeppelin.sh &
+        ZEPPELIN_PID=$!
+        
+        # 2. Wait for Zeppelin to be fully loaded (listening on its port)
+        echo 'Waiting for Zeppelin UI (8080) to become available...'
+        
+        # Use built-in Bash /dev/tcp for connectivity check
+        while ! timeout 1 bash -c 'cat < /dev/null > /dev/tcp/127.0.0.1/8080'; do
+          sleep 1 
+        done
+        echo 'Zeppelin is up. Running configuration script...'        
+        # 3. Configure Flink Interpreter
+        /tmp/setup_flink_interpreter.sh
+        
+        # 4. Wait for the main Zeppelin process to finish
+        wait $ZEPPELIN_PID
+      "
     volumes:
-      - ./zeppelin/interpreter.json:/zeppelin/conf/interpreter.json
+      - ./zeppelin/setup_flink_interpreter.sh:/tmp/setup_flink_interpreter.sh
+      - ./jars/flink-sql-connector-kafka-1.17.2.jar:/opt/flink/lib/flink-sql-connector-kafka-1.17.2.jar
+
+    environment:
+      FLINK_HOME: /opt/flink    
 
   # ------------------------------
   # Kafka UI (Provectus)
@@ -112,6 +155,19 @@ services:
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: broker:9092
+
+  clickstream-generator:
+    image: clickstream-generator:latest
+    container_name: clickstream-generator
+    networks:
+      - flink-net
+    environment:
+      KAFKA_BROKER: "broker:9092"
+      KAFKA_TOPIC: "clickstream"
+      CLIENT_ID: "clickstream-generator-1"
+    depends_on:
+      - broker
+
 
 # ------------------------------
 # Docker Network
