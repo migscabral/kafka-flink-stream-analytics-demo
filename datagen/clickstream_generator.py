@@ -16,7 +16,7 @@ CLIENT_ID = os.getenv("CLIENT_ID", "clickstream-generator-1")
 NORMAL_MIN_DELAY = float(os.getenv("NORMAL_MIN_DELAY", 1))
 NORMAL_MAX_DELAY = float(os.getenv("NORMAL_MAX_DELAY", 3))
 
-FRAUD_CHANCE = float(os.getenv("FRAUD_CHANCE", 0.10))
+FRAUD_CHANCE = float(os.getenv("FRAUD_CHANCE", 0.30))
 USER_POOL_SIZE = int(os.getenv("USER_POOL_SIZE", 50))
 PRODUCT_POOL_SIZE = int(os.getenv("PRODUCT_POOL_SIZE", 500))
 
