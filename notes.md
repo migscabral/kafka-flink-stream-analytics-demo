@@ -1,9 +1,11 @@
-1. Create `clickstream` topic:
+1. docker-compose --profile core up -d --force-recreate
+
+1. Create `sanity-test` topic:
 
 ```
 docker exec -it broker kafka-topics.sh \
   --create \
-  --topic clickstream \
+  --topic sanity-test \
   --bootstrap-server broker:9092 \
   --partitions 1 \
   --replication-factor 1 \
@@ -30,12 +32,9 @@ docker exec -it broker kafka-console-consumer.sh \
   --from-beginning
 ```
 
-docker exec -it sql-gateway \
-  /opt/flink/bin/sql-client.sh gateway -e "http://sql-gateway:8083"
-
 1. Open Zeppelin UI at http://localhost:8082. 
 
-1. Configure Flink interpreter settings:
+1. Configure Flink interpreter settings, then save, and restart Flink interpreter.
 ```
 FLINK HOME = /opt/flink
 flink.execution.mode = remote
@@ -61,7 +60,28 @@ CREATE TABLE sanity_test_table (
 
 1. Input the following code in another paragraph and run:
 ```
-%flinksql
+%flink.ssql
 SELECT * FROM sanity_test_table;
 ```
 
+docker exec -it broker kafka-topics.sh \
+  --delete \
+  --topic clickstream \
+  --bootstrap-server broker:9092
+
+```
+docker exec -it broker kafka-topics.sh \
+  --create \
+  --topic clickstream \
+  --bootstrap-server broker:9092 \
+  --partitions 1 \
+  --replication-factor 1 \
+  --config retention.ms=864000000
+```
+
+
+docker build -t clickstream-generator:latest .
+
+docker-compose --profile core up -d --force-recreate
+
+docker-compose --profile datagen up -d --force-recreate

@@ -96,14 +96,14 @@ GROUP BY T.funnel_user_id;                            -- Aggregates the resultin
 
 %flink.ssql
 SELECT
-    TUMBLE_START(ts_ltz, INTERVAL '30' MINUTE) AS window_start, -- Outputs the starting timestamp of the 30-minute window
+    TUMBLE_START(ts_ltz, INTERVAL '3' MINUTE) AS window_start, -- Outputs the starting timestamp of the 30-minute window
     product_id,
     SUM(CASE WHEN action = 'view' THEN 1 ELSE 0 END) AS total_views,      -- Counts total 'view' actions in the window
     SUM(CASE WHEN action = 'purchase' THEN 1 ELSE 0 END) AS total_purchases -- Counts total 'purchase' actions in the window
 FROM clickstream
 GROUP BY 
     product_id,
-    TUMBLE(ts_ltz, INTERVAL '30' MINUTE);                             -- Groups data into fixed, 30-minute windows based on the Rowtime column (ts_ltz)
+    TUMBLE(ts_ltz, INTERVAL '3' MINUTE);                             -- Groups data into fixed, 30-minute windows based on the Rowtime column (ts_ltz)
 
 -- Session Window (User Behavior)
 -- This query analyzes user engagement by grouping events into distinct sessions, defined by a gap in activity.
@@ -111,11 +111,11 @@ GROUP BY
 %flink.ssql
 SELECT
     user_id,
-    SESSION_START(ts_ltz, INTERVAL '10' MINUTE) AS session_start, -- Outputs the event time of the first event in the session
-    SESSION_END(ts_ltz, INTERVAL '10' MINUTE) AS session_end,   -- Outputs the event time of the last event + the gap (10 min)
+    SESSION_START(ts_ltz, INTERVAL '3' MINUTE) AS session_start, -- Outputs the event time of the first event in the session
+    SESSION_END(ts_ltz, INTERVAL '3' MINUTE) AS session_end,   -- Outputs the event time of the last event + the gap (3 min)
     -- Calculate the duration of the session
-    TIMESTAMPDIFF(SECOND, SESSION_START(ts_ltz, INTERVAL '10' MINUTE), SESSION_END(ts_ltz, INTERVAL '10' MINUTE)) AS session_duration_sec
+    TIMESTAMPDIFF(SECOND, SESSION_START(ts_ltz, INTERVAL '3' MINUTE), SESSION_END(ts_ltz, INTERVAL '3' MINUTE)) AS session_duration_sec
 FROM clickstream
 GROUP BY 
     user_id,
-    SESSION(ts_ltz, INTERVAL '10' MINUTE);                        -- Groups events into sessions for each user, with a 10-minute inactivity gap
+    SESSION(ts_ltz, INTERVAL '3' MINUTE);                        -- Groups events into sessions for each user, with a 3-minute inactivity gap

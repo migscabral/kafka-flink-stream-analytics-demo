@@ -1,0 +1,435 @@
+{
+    "msk_sources": {
+        "regions": []
+    },
+    "osk_sources": {
+        "clusters": [
+            {
+                "id": "local-kafka",
+                "bootstrap_servers": [
+                    "localhost:9092"
+                ],
+                "kafka_admin_client_information": {
+                    "cluster_id": "w8b7yqJdTLe7H2C6P4oC0A",
+                    "discovered_brokers": [
+                        "localhost:9092"
+                    ],
+                    "topics": {
+                        "summary": {
+                            "topics": 1,
+                            "internal_topics": 0,
+                            "total_partitions": 1,
+                            "total_internal_partitions": 0,
+                            "compact_topics": 0,
+                            "compact_internal_topics": 0,
+                            "compact_partitions": 0,
+                            "compact_internal_partitions": 0,
+                            "remote_storage_topics": 0
+                        },
+                        "details": [
+                            {
+                                "name": "clickstream",
+                                "partitions": 1,
+                                "replication_factor": 1,
+                                "configurations": {
+                                    "cleanup.policy": "delete",
+                                    "compression.gzip.level": "-1",
+                                    "compression.lz4.level": "9",
+                                    "compression.type": "producer",
+                                    "compression.zstd.level": "3",
+                                    "delete.retention.ms": "86400000",
+                                    "file.delete.delay.ms": "60000",
+                                    "flush.messages": "9223372036854775807",
+                                    "flush.ms": "9223372036854775807",
+                                    "follower.replication.throttled.replicas": "",
+                                    "index.interval.bytes": "4096",
+                                    "leader.replication.throttled.replicas": "",
+                                    "local.retention.bytes": "-2",
+                                    "local.retention.ms": "-2",
+                                    "max.compaction.lag.ms": "9223372036854775807",
+                                    "max.message.bytes": "1048588",
+                                    "message.timestamp.after.max.ms": "3600000",
+                                    "message.timestamp.before.max.ms": "9223372036854775807",
+                                    "message.timestamp.type": "CreateTime",
+                                    "min.cleanable.dirty.ratio": "0.5",
+                                    "min.compaction.lag.ms": "0",
+                                    "min.insync.replicas": "1",
+                                    "preallocate": "false",
+                                    "remote.log.copy.disable": "false",
+                                    "remote.log.delete.on.disable": "false",
+                                    "remote.storage.enable": "false",
+                                    "retention.bytes": "-1",
+                                    "retention.ms": "604800000",
+                                    "segment.bytes": "1073741824",
+                                    "segment.index.bytes": "10485760",
+                                    "segment.jitter.ms": "0",
+                                    "segment.ms": "604800000",
+                                    "unclean.leader.election.enable": "false"
+                                }
+                            }
+                        ]
+                    },
+                    "acls": null,
+                    "self_managed_connectors": null
+                },
+                "metrics": {
+                    "region": "",
+                    "cluster_arn": "",
+                    "metadata": {
+                        "cluster_type": "",
+                        "number_of_broker_nodes": 0,
+                        "kafka_version": "",
+                        "broker_az_distribution": "",
+                        "enhanced_monitoring": "",
+                        "start_date": "2026-05-22T06:54:12.791215+08:00",
+                        "end_date": "2026-05-22T06:55:12.791215+08:00",
+                        "period": 10,
+                        "follower_fetching": false,
+                        "instance_type": "",
+                        "tiered_storage": false,
+                        "broker_type": ""
+                    },
+                    "results": [
+                        {
+                            "start": "2026-05-22T06:54:12+08:00",
+                            "end": "2026-05-22T06:54:22+08:00",
+                            "label": "GlobalPartitionCount",
+                            "value": 1
+                        },
+                        {
+                            "start": "2026-05-22T06:54:12+08:00",
+                            "end": "2026-05-22T06:54:22+08:00",
+                            "label": "ClientConnectionCount",
+                            "value": 3
+                        },
+                        {
+                            "start": "2026-05-22T06:54:12+08:00",
+                            "end": "2026-05-22T06:54:22+08:00",
+                            "label": "TotalLocalStorageUsage",
+                            "value": 0.0007666163146495819
+                        },
+                        {
+                            "start": "2026-05-22T06:54:12+08:00",
+                            "end": "2026-05-22T06:54:22+08:00",
+                            "label": "BytesInPerSec",
+                            "value": 92.9505552591363
+                        },
+                        {
+                            "start": "2026-05-22T06:54:12+08:00",
+                            "end": "2026-05-22T06:54:22+08:00",
+                            "label": "BytesOutPerSec",
+                            "value": 0
+                        },
+                        {
+                            "start": "2026-05-22T06:54:12+08:00",
+                            "end": "2026-05-22T06:54:22+08:00",
+                            "label": "MessagesInPerSec",
+                            "value": 0.39935791733248677
+                        },
+                        {
+                            "start": "2026-05-22T06:54:12+08:00",
+                            "end": "2026-05-22T06:54:22+08:00",
+                            "label": "PartitionCount",
+                            "value": 1
+                        },
+                        {
+                            "start": "2026-05-22T06:54:22+08:00",
+                            "end": "2026-05-22T06:54:32+08:00",
+                            "label": "BytesOutPerSec",
+                            "value": 0
+                        },
+                        {
+                            "start": "2026-05-22T06:54:22+08:00",
+                            "end": "2026-05-22T06:54:32+08:00",
+                            "label": "MessagesInPerSec",
+                            "value": 0.3999868737507602
+                        },
+                        {
+                            "start": "2026-05-22T06:54:22+08:00",
+                            "end": "2026-05-22T06:54:32+08:00",
+                            "label": "PartitionCount",
+                            "value": 1
+                        },
+                        {
+                            "start": "2026-05-22T06:54:22+08:00",
+                            "end": "2026-05-22T06:54:32+08:00",
+                            "label": "GlobalPartitionCount",
+                            "value": 1
+                        },
+                        {
+                            "start": "2026-05-22T06:54:22+08:00",
+                            "end": "2026-05-22T06:54:32+08:00",
+                            "label": "ClientConnectionCount",
+                            "value": 3
+                        },
+                        {
+                            "start": "2026-05-22T06:54:22+08:00",
+                            "end": "2026-05-22T06:54:32+08:00",
+                            "label": "TotalLocalStorageUsage",
+                            "value": 0.0007688263431191444
+                        },
+                        {
+                            "start": "2026-05-22T06:54:22+08:00",
+                            "end": "2026-05-22T06:54:32+08:00",
+                            "label": "BytesInPerSec",
+                            "value": 93.29693830236482
+                        },
+                        {
+                            "start": "2026-05-22T06:54:32+08:00",
+                            "end": "2026-05-22T06:54:42+08:00",
+                            "label": "ClientConnectionCount",
+                            "value": 3
+                        },
+                        {
+                            "start": "2026-05-22T06:54:32+08:00",
+                            "end": "2026-05-22T06:54:42+08:00",
+                            "label": "TotalLocalStorageUsage",
+                            "value": 0.0007707551121711731
+                        },
+                        {
+                            "start": "2026-05-22T06:54:32+08:00",
+                            "end": "2026-05-22T06:54:42+08:00",
+                            "label": "BytesInPerSec",
+                            "value": 70.30026626225848
+                        },
+                        {
+                            "start": "2026-05-22T06:54:32+08:00",
+                            "end": "2026-05-22T06:54:42+08:00",
+                            "label": "BytesOutPerSec",
+                            "value": 0
+                        },
+                        {
+                            "start": "2026-05-22T06:54:32+08:00",
+                            "end": "2026-05-22T06:54:42+08:00",
+                            "label": "MessagesInPerSec",
+                            "value": 0.3000011362543036
+                        },
+                        {
+                            "start": "2026-05-22T06:54:32+08:00",
+                            "end": "2026-05-22T06:54:42+08:00",
+                            "label": "PartitionCount",
+                            "value": 1
+                        },
+                        {
+                            "start": "2026-05-22T06:54:32+08:00",
+                            "end": "2026-05-22T06:54:42+08:00",
+                            "label": "GlobalPartitionCount",
+                            "value": 1
+                        },
+                        {
+                            "start": "2026-05-22T06:54:42+08:00",
+                            "end": "2026-05-22T06:54:52+08:00",
+                            "label": "BytesOutPerSec",
+                            "value": 0
+                        },
+                        {
+                            "start": "2026-05-22T06:54:42+08:00",
+                            "end": "2026-05-22T06:54:52+08:00",
+                            "label": "MessagesInPerSec",
+                            "value": 0.4000306357061865
+                        },
+                        {
+                            "start": "2026-05-22T06:54:42+08:00",
+                            "end": "2026-05-22T06:54:52+08:00",
+                            "label": "ClientConnectionCount",
+                            "value": 3
+                        },
+                        {
+                            "start": "2026-05-22T06:54:42+08:00",
+                            "end": "2026-05-22T06:54:52+08:00",
+                            "label": "TotalLocalStorageUsage",
+                            "value": 0.0007729586213827133
+                        },
+                        {
+                            "start": "2026-05-22T06:54:42+08:00",
+                            "end": "2026-05-22T06:54:52+08:00",
+                            "label": "PartitionCount",
+                            "value": 1
+                        },
+                        {
+                            "start": "2026-05-22T06:54:42+08:00",
+                            "end": "2026-05-22T06:54:52+08:00",
+                            "label": "GlobalPartitionCount",
+                            "value": 1
+                        },
+                        {
+                            "start": "2026-05-22T06:54:42+08:00",
+                            "end": "2026-05-22T06:54:52+08:00",
+                            "label": "BytesInPerSec",
+                            "value": 92.60709216598218
+                        },
+                        {
+                            "start": "2026-05-22T06:54:52+08:00",
+                            "end": "2026-05-22T06:55:02+08:00",
+                            "label": "BytesInPerSec",
+                            "value": 116.50205965156277
+                        },
+                        {
+                            "start": "2026-05-22T06:54:52+08:00",
+                            "end": "2026-05-22T06:55:02+08:00",
+                            "label": "BytesOutPerSec",
+                            "value": 0
+                        },
+                        {
+                            "start": "2026-05-22T06:54:52+08:00",
+                            "end": "2026-05-22T06:55:02+08:00",
+                            "label": "MessagesInPerSec",
+                            "value": 0.5000088397062781
+                        },
+                        {
+                            "start": "2026-05-22T06:54:52+08:00",
+                            "end": "2026-05-22T06:55:02+08:00",
+                            "label": "PartitionCount",
+                            "value": 1
+                        },
+                        {
+                            "start": "2026-05-22T06:54:52+08:00",
+                            "end": "2026-05-22T06:55:02+08:00",
+                            "label": "GlobalPartitionCount",
+                            "value": 1
+                        },
+                        {
+                            "start": "2026-05-22T06:54:52+08:00",
+                            "end": "2026-05-22T06:55:02+08:00",
+                            "label": "ClientConnectionCount",
+                            "value": 3
+                        },
+                        {
+                            "start": "2026-05-22T06:54:52+08:00",
+                            "end": "2026-05-22T06:55:02+08:00",
+                            "label": "TotalLocalStorageUsage",
+                            "value": 0.0007753847166895866
+                        }
+                    ],
+                    "aggregates": {
+                        "BytesInPerSec": {
+                            "avg": 93.13138232826091,
+                            "max": 116.50205965156277,
+                            "min": 70.30026626225848
+                        },
+                        "BytesOutPerSec": {
+                            "avg": 0,
+                            "max": 0,
+                            "min": 0
+                        },
+                        "ClientConnectionCount": {
+                            "avg": 3,
+                            "max": 3,
+                            "min": 3
+                        },
+                        "GlobalPartitionCount": {
+                            "avg": 1,
+                            "max": 1,
+                            "min": 1
+                        },
+                        "MessagesInPerSec": {
+                            "avg": 0.39987708055000304,
+                            "max": 0.5000088397062781,
+                            "min": 0.3000011362543036
+                        },
+                        "PartitionCount": {
+                            "avg": 1,
+                            "max": 1,
+                            "min": 1
+                        },
+                        "TotalLocalStorageUsage": {
+                            "avg": 0.0007709082216024399,
+                            "max": 0.0007753847166895866,
+                            "min": 0.0007666163146495819
+                        }
+                    },
+                    "query_info": [
+                        {
+                            "metric_name": "BytesInPerSec",
+                            "source_type": "jolokia",
+                            "statistic": "Rate (delta/sec, summed across brokers)",
+                            "period": 10,
+                            "mbean_path": "kafka.server:type=BrokerTopicMetrics,name=BytesInPerSec",
+                            "jolokia_url": "http://localhost:8778/jolokia",
+                            "curl_command": "curl 'http://localhost:8778/jolokia/read/kafka.server:type=BrokerTopicMetrics,name=BytesInPerSec'",
+                            "query_duration": "1m",
+                            "aggregation_note": "Rate computed from the monotonic Count attribute of kafka.server:type=BrokerTopicMetrics,name=BytesInPerSec. Values are summed across all 1 broker(s), then the rate is derived from the delta between consecutive polls. Add -u user:pass to the curl command if authentication is configured."
+                        },
+                        {
+                            "metric_name": "BytesOutPerSec",
+                            "source_type": "jolokia",
+                            "statistic": "Rate (delta/sec, summed across brokers)",
+                            "period": 10,
+                            "mbean_path": "kafka.server:type=BrokerTopicMetrics,name=BytesOutPerSec",
+                            "jolokia_url": "http://localhost:8778/jolokia",
+                            "curl_command": "curl 'http://localhost:8778/jolokia/read/kafka.server:type=BrokerTopicMetrics,name=BytesOutPerSec'",
+                            "query_duration": "1m",
+                            "aggregation_note": "Rate computed from the monotonic Count attribute of kafka.server:type=BrokerTopicMetrics,name=BytesOutPerSec. Values are summed across all 1 broker(s), then the rate is derived from the delta between consecutive polls. Add -u user:pass to the curl command if authentication is configured."
+                        },
+                        {
+                            "metric_name": "MessagesInPerSec",
+                            "source_type": "jolokia",
+                            "statistic": "Rate (delta/sec, summed across brokers)",
+                            "period": 10,
+                            "mbean_path": "kafka.server:type=BrokerTopicMetrics,name=MessagesInPerSec",
+                            "jolokia_url": "http://localhost:8778/jolokia",
+                            "curl_command": "curl 'http://localhost:8778/jolokia/read/kafka.server:type=BrokerTopicMetrics,name=MessagesInPerSec'",
+                            "query_duration": "1m",
+                            "aggregation_note": "Rate computed from the monotonic Count attribute of kafka.server:type=BrokerTopicMetrics,name=MessagesInPerSec. Values are summed across all 1 broker(s), then the rate is derived from the delta between consecutive polls. Add -u user:pass to the curl command if authentication is configured."
+                        },
+                        {
+                            "metric_name": "PartitionCount",
+                            "source_type": "jolokia",
+                            "statistic": "Sum across brokers",
+                            "period": 10,
+                            "mbean_path": "kafka.server:type=ReplicaManager,name=PartitionCount",
+                            "jolokia_url": "http://localhost:8778/jolokia",
+                            "curl_command": "curl 'http://localhost:8778/jolokia/read/kafka.server:type=ReplicaManager,name=PartitionCount'",
+                            "query_duration": "1m",
+                            "aggregation_note": "Gauge value read from the Value attribute of kafka.server:type=ReplicaManager,name=PartitionCount. Summed across all 1 broker(s). Add -u user:pass to the curl command if authentication is configured."
+                        },
+                        {
+                            "metric_name": "GlobalPartitionCount",
+                            "source_type": "jolokia",
+                            "statistic": "Controller value (single broker)",
+                            "period": 10,
+                            "mbean_path": "kafka.controller:type=KafkaController,name=GlobalPartitionCount",
+                            "jolokia_url": "http://localhost:8778/jolokia",
+                            "curl_command": "curl 'http://localhost:8778/jolokia/read/kafka.controller:type=KafkaController,name=GlobalPartitionCount'",
+                            "query_duration": "1m",
+                            "aggregation_note": "Controller-only MBean kafka.controller:type=KafkaController,name=GlobalPartitionCount; queried from the active controller broker. This MBean must be exposed by the Jolokia agent. Add -u user:pass to the curl command if authentication is configured."
+                        },
+                        {
+                            "metric_name": "ClientConnectionCount",
+                            "source_type": "jolokia",
+                            "statistic": "Sum across brokers",
+                            "period": 10,
+                            "mbean_path": "kafka.server:type=socket-server-metrics,listener=*,networkProcessor=*",
+                            "jolokia_url": "http://localhost:8778/jolokia",
+                            "curl_command": "curl 'http://localhost:8778/jolokia/read/kafka.server:type=socket-server-metrics,listener=*,networkProcessor=*/connection-count'",
+                            "query_duration": "1m",
+                            "aggregation_note": "Wildcard MBean pattern kafka.server:type=socket-server-metrics,listener=*,networkProcessor=*; the connection-count attribute is summed across all matching MBeans on all 1 broker(s). Add -u user:pass to the curl command if authentication is configured."
+                        },
+                        {
+                            "metric_name": "TotalLocalStorageUsage",
+                            "source_type": "jolokia",
+                            "statistic": "Sum across brokers",
+                            "period": 10,
+                            "mbean_path": "kafka.log:type=Log,name=Size,*",
+                            "jolokia_url": "http://localhost:8778/jolokia",
+                            "curl_command": "curl 'http://localhost:8778/jolokia/read/kafka.log:type=Log,name=Size,*/Value'",
+                            "query_duration": "1m",
+                            "aggregation_note": "Wildcard MBean pattern kafka.log:type=Log,name=Size,*; the Value attribute is summed across all matching MBeans on all 1 broker(s). Add -u user:pass to the curl command if authentication is configured."
+                        }
+                    ]
+                },
+                "discovered_clients": null,
+                "metadata": {
+                    "last_scanned": "2026-05-22T11:35:29.774607+08:00"
+                }
+            }
+        ]
+    },
+    "schema_registries": {},
+    "kcp_build_info": {
+        "version": "0.8.0",
+        "commit": "c4888c0c93449fc1ad8c2efb0ff4942faa43baee",
+        "date": "2026-05-14T15:51:35Z"
+    },
+    "timestamp": "2026-05-19T04:39:40.119545+08:00"
+}

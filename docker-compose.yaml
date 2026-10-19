@@ -7,22 +7,34 @@ services:
   broker:
     image: apache/kafka:4.1.1
     container_name: broker
+    profiles:
+      - core
     networks:
       - flink-net
     ports:
       - "9092:9092"
+      - "8778:8778" # expose Jolokia port
+    volumes:
+      - ./jolokia-jvm-agent-2.6.0.jar:/opt/jolokia/jolokia.jar:ro
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: "broker,controller"
       KAFKA_CONTROLLER_QUORUM_VOTERS: "1@broker:29093"
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
-      KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093"
-      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://broker:9092"
+      # KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT"
+
+      # KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093"
+      KAFKA_LISTENERS: "INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093"
+
+      # KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://broker:9092"
+      KAFKA_ADVERTISED_LISTENERS: "INTERNAL://broker:29092,EXTERNAL://localhost:9092"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "INTERNAL"
       KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       CLUSTER_ID: "w8b7yqJdTLe7H2C6P4oC0A"
       PATH: "/opt/kafka/bin:$PATH"
+      KAFKA_OPTS: "-javaagent:/opt/jolokia/jolokia.jar=port=8778,host=0.0.0.0"
 
   # ------------------------------
   # Flink JobManager
@@ -30,6 +42,8 @@ services:
   jobmanager:
     image: flink:1.17.2-scala_2.12
     container_name: jobmanager
+    profiles:
+      - core
     networks:
       - flink-net
     depends_on:
@@ -56,6 +70,8 @@ services:
   taskmanager:
     image: flink:1.17.2-scala_2.12
     # container_name: taskmanager
+    profiles:
+      - core
     networks:
       - flink-net
     depends_on:
@@ -73,43 +89,19 @@ services:
       - ./jars/flink-sql-connector-kafka-1.17.2.jar:/opt/flink/lib/flink-sql-connector-kafka-1.17.2.jar
 
   # ------------------------------
-  # Flink SQL Gateway
-  # ------------------------------
-  sql-gateway:
-    image: flink:1.17.2-scala_2.12
-    container_name: sql-gateway
-    networks:
-      - flink-net
-    ports:
-      - "8083:8083"
-    depends_on:
-      - jobmanager
-      - taskmanager
-    command: /opt/flink/bin/sql-gateway.sh start-foreground
-    environment:
-      FLINK_PROPERTIES: |
-        sql-gateway.endpoint.type: rest
-        sql-gateway.endpoint.rest.address: 0.0.0.0
-        sql-gateway.endpoint.rest.port: 8083
-        jobmanager.rpc.address: jobmanager
-        rest.address: jobmanager
-        rest.port: 8081
-      FLINK_LOG_LEVEL: DEBUG
-    volumes:
-      - ./jars/flink-sql-connector-kafka-1.17.2.jar:/opt/flink/lib/flink-sql-connector-kafka-1.17.2.jar
-
-  # ------------------------------
   # Zeppelin
   # ------------------------------
   zeppelin:
     image: zeppelin-flink:0.11.2-1.17.2
     container_name: zeppelin
+    profiles:
+      - core
     networks:
       - flink-net
     ports:
       - "8082:8080"
     depends_on:
-      - sql-gateway
+      - jobmanager
     entrypoint: >
       bash -c "
         # FIX: Grant execute permission to the mounted script
@@ -146,6 +138,8 @@ services:
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: kafka-ui
+    profiles:
+      - core
     networks:
       - flink-net
     ports:
@@ -154,19 +148,24 @@ services:
       - broker
     environment:
       KAFKA_CLUSTERS_0_NAME: local
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: broker:9092
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: broker:29092
 
+  # ------------------------------
+  # Data Generator
+  # ------------------------------
   clickstream-generator:
     image: clickstream-generator:latest
     container_name: clickstream-generator
+    profiles:
+      - datagen
     networks:
       - flink-net
     environment:
-      KAFKA_BROKER: "broker:9092"
+      KAFKA_BROKER: "broker:29092"
       KAFKA_TOPIC: "clickstream"
       CLIENT_ID: "clickstream-generator-1"
-    depends_on:
-      - broker
+      USER_POOL_SIZE: 10
+      PRODUCT_POOL_SIZE: 20
 
 
 # ------------------------------
