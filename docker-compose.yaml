@@ -61,8 +61,14 @@ services:
         rest.address: jobmanager
         rest.port: 8081
       FLINK_LOG_LEVEL: DEBUG
+    # AWS credentials, region and S3_BUCKET come straight from .env, so shell exports cannot override them.
+    env_file:
+      - .env
     volumes:
       - ./jars/flink-sql-connector-kafka-1.17.2.jar:/opt/flink/lib/flink-sql-connector-kafka-1.17.2.jar
+      - ./jars/iceberg-flink-runtime-1.17-1.6.1.jar:/opt/flink/lib/iceberg-flink-runtime-1.17-1.6.1.jar
+      - ./jars/iceberg-aws-bundle-1.6.1.jar:/opt/flink/lib/iceberg-aws-bundle-1.6.1.jar
+      - ./jars/flink-shaded-hadoop-2-uber-2.8.3-10.0.jar:/opt/flink/lib/flink-shaded-hadoop-2-uber-2.8.3-10.0.jar
 
   # ------------------------------
   # Flink TaskManager
@@ -82,17 +88,23 @@ services:
         jobmanager.rpc.address: jobmanager
         taskmanager.host: taskmanager
         taskmanager.memory.process.size: 1600m
-        taskmanager.numberOfTaskSlots: 2
+        taskmanager.numberOfTaskSlots: 8
         parallelism.default: 1
       FLINK_LOG_LEVEL: DEBUG
+    env_file:
+      - .env
     volumes:
       - ./jars/flink-sql-connector-kafka-1.17.2.jar:/opt/flink/lib/flink-sql-connector-kafka-1.17.2.jar
+      - ./jars/iceberg-flink-runtime-1.17-1.6.1.jar:/opt/flink/lib/iceberg-flink-runtime-1.17-1.6.1.jar
+      - ./jars/iceberg-aws-bundle-1.6.1.jar:/opt/flink/lib/iceberg-aws-bundle-1.6.1.jar
+      - ./jars/flink-shaded-hadoop-2-uber-2.8.3-10.0.jar:/opt/flink/lib/flink-shaded-hadoop-2-uber-2.8.3-10.0.jar
 
   # ------------------------------
   # Zeppelin
   # ------------------------------
   zeppelin:
     image: zeppelin-flink:0.11.2-1.17.2
+    platform: linux/amd64 # apache/zeppelin has no arm64 build; runs under emulation on Apple Silicon
     container_name: zeppelin
     profiles:
       - core
@@ -128,9 +140,14 @@ services:
     volumes:
       - ./zeppelin/setup_flink_interpreter.sh:/tmp/setup_flink_interpreter.sh
       - ./jars/flink-sql-connector-kafka-1.17.2.jar:/opt/flink/lib/flink-sql-connector-kafka-1.17.2.jar
+      - ./jars/iceberg-flink-runtime-1.17-1.6.1.jar:/opt/flink/lib/iceberg-flink-runtime-1.17-1.6.1.jar
+      - ./jars/iceberg-aws-bundle-1.6.1.jar:/opt/flink/lib/iceberg-aws-bundle-1.6.1.jar
+      - ./jars/flink-shaded-hadoop-2-uber-2.8.3-10.0.jar:/opt/flink/lib/flink-shaded-hadoop-2-uber-2.8.3-10.0.jar
 
     environment:
       FLINK_HOME: /opt/flink    
+    env_file:
+      - .env
 
   # ------------------------------
   # Kafka UI (Provectus)

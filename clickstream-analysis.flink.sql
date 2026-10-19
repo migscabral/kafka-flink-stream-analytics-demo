@@ -1,5 +1,8 @@
+-- 5. Clickstream pipeline
+-- Run the clickstream table first, then the analysis queries below one at a time.
+
 %flink.ssql
-DROP TABLE clickstream;
+DROP TABLE IF EXISTS clickstream;
 
 %flink.ssql
 CREATE TABLE clickstream (
@@ -18,7 +21,7 @@ CREATE TABLE clickstream (
 ) WITH (
     'connector' = 'kafka',
     'topic' = 'clickstream',
-    'properties.bootstrap.servers' = 'broker:9092',
+    'properties.bootstrap.servers' = 'broker:29092',
     'properties.group.id' = 'clickstream_consumer',
     'scan.startup.mode' = 'earliest-offset',
     'format' = 'json'
@@ -57,7 +60,7 @@ FROM clickstream
 GROUP BY T.funnel_user_id;                    -- Groups the matched results to aggregate the counts per user
 
 -- Fraudulent Flow Analysis (Data Quality/Security)
--- This query filters the completed flows from Query 4 based on the time duration between the start (V) and end (P) events, identifying flows completed in $\le 1$ second.
+-- This query filters the completed flows from the Total Completed Flows query above based on the time duration between the start (V) and end (P) events, identifying flows completed in $\le 1$ second.
 
 %flink.ssql
 SELECT
@@ -119,3 +122,142 @@ FROM clickstream
 GROUP BY 
     user_id,
     SESSION(ts_ltz, INTERVAL '3' MINUTE);                        -- Groups events into sessions for each user, with a 3-minute inactivity gap
+
+-- 6. Iceberg on S3 (AWS Glue catalog, S3 warehouse)
+-- The warehouse bucket comes from S3_BUCKET in .env (region from AWS_REGION). Credentials come from the container AWS_* env vars.
+-- This paragraph uses the Scala %flink interpreter because %flink.ssql cannot read environment variables.
+-- Avoid ${...} here: Zeppelin treats it as a dynamic form and replaces it with an empty string.
+
+%flink
+val warehouse = "s3://<REPLACE ME WITH S3_BUCKET>/warehouse"
+stenv.executeSql(
+  "CREATE CATALOG glue_catalog WITH (" +
+  "'type' = 'iceberg', " +
+  "'catalog-impl' = 'org.apache.iceberg.aws.glue.GlueCatalog', " +
+  "'warehouse' = '" + warehouse + "', " +
+  "'io-impl' = 'org.apache.iceberg.aws.s3.S3FileIO')")
+
+-- Optional. If needed, unregister glue_catalog from the session. Run the catalog paragraph above again to use Iceberg afterwards.
+
+%flink
+stenv.asInstanceOf[org.apache.flink.table.api.internal.TableEnvironmentImpl]
+  .getCatalogManager.unregisterCatalog("glue_catalog", true)
+
+
+-- Clean start (optional, destructive): cancel the running Flink jobs in the Flink dashboard first.
+-- Drops the Iceberg tables (their data files in S3 should be deleted too; check S3 afterwards, see notes.md "Clean start"), then the Glue database.
+-- Flink 1.17 has no DROP CATALOG; the paragraph after the drops unregisters glue_catalog instead.
+
+%flink.ssql
+DROP TABLE IF EXISTS glue_catalog.clickstream_db.clickstream_events;
+DROP TABLE IF EXISTS glue_catalog.clickstream_db.fraudulent_transactions;
+DROP DATABASE IF EXISTS glue_catalog.clickstream_db;
+
+-- Clean start for the Flink session tables (Kafka topics are not deleted).
+
+%flink.ssql
+DROP TABLE IF EXISTS fraudulent_transactions_source;
+DROP TABLE IF EXISTS fraudulent_transactions;
+
+%flink.ssql
+CREATE DATABASE IF NOT EXISTS glue_catalog.clickstream_db;
+
+%flink.ssql
+CREATE TABLE IF NOT EXISTS glue_catalog.clickstream_db.clickstream_events (
+    user_id STRING,
+    product_id STRING,
+    action STRING,
+    event_time TIMESTAMP_LTZ(3)
+);
+
+-- 7. Fraudulent transactions
+-- A flow is fraudulent when view, scroll, add to cart and purchase complete within 1 second.
+
+-- Kafka sink: one record per fraudulent flow to the fraudulent-transactions topic.
+-- The aggregate fraud query in section 5 is not used here because a Kafka sink can only take an append-only stream.
+
+%flink.ssql
+CREATE TABLE IF NOT EXISTS fraudulent_transactions (
+    user_id STRING,
+    product_id STRING,
+    start_time TIMESTAMP_LTZ(3),
+    end_time TIMESTAMP_LTZ(3),
+    duration_sec BIGINT
+) WITH (
+    'connector' = 'kafka',
+    'topic' = 'fraudulent-transactions',
+    'properties.bootstrap.servers' = 'broker:29092',
+    'format' = 'json',
+    'json.timestamp-format.standard' = 'ISO-8601'
+);
+
+-- Fraudulent transactions to Iceberg tables (the source table reads back the fraudulent-transactions Kafka topic)
+
+%flink.ssql
+CREATE TABLE IF NOT EXISTS fraudulent_transactions_source (
+    user_id STRING,
+    product_id STRING,
+    start_time TIMESTAMP_LTZ(3),
+    end_time TIMESTAMP_LTZ(3),
+    duration_sec BIGINT
+) WITH (
+    'connector' = 'kafka',
+    'topic' = 'fraudulent-transactions',
+    'properties.bootstrap.servers' = 'broker:29092',
+    'properties.group.id' = 'fraud_iceberg_writer',
+    'scan.startup.mode' = 'earliest-offset',
+    'format' = 'json',
+    'json.timestamp-format.standard' = 'ISO-8601'
+);
+
+%flink.ssql
+CREATE TABLE IF NOT EXISTS glue_catalog.clickstream_db.fraudulent_transactions (
+    user_id STRING,
+    product_id STRING,
+    start_time TIMESTAMP_LTZ(3),
+    end_time TIMESTAMP_LTZ(3),
+    duration_sec BIGINT
+);
+
+-- Streaming jobs (run these last, after all the tables above exist)
+-- The three INSERT INTO statements are submitted as one Flink job from a single paragraph (runAsOne).
+-- Separate INSERT paragraphs left the second one Pending in Zeppelin.
+-- Iceberg commits data on checkpoint, so checkpointing must be enabled for the job submitted from Zeppelin.
+
+%flink.ssql
+SET 'execution.checkpointing.interval' = '10s';
+
+%flink.ssql(runAsOne=true)
+-- 1. clickstream to Iceberg
+INSERT INTO glue_catalog.clickstream_db.clickstream_events
+SELECT user_id, product_id, action, ts_ltz AS event_time
+FROM default_catalog.default_database.clickstream;
+
+-- 2. fraudulent flows to the fraudulent-transactions Kafka topic
+INSERT INTO fraudulent_transactions
+SELECT
+    T.user_id,
+    T.product_id,
+    T.start_time,
+    T.end_time,
+    TIMESTAMPDIFF(SECOND, T.start_time, T.end_time) AS duration_sec
+FROM clickstream
+    MATCH_RECOGNIZE (
+        PARTITION BY user_id, product_id
+        ORDER BY ts_ltz
+        MEASURES
+            V.ts_ltz AS start_time,
+            P.ts_ltz AS end_time
+        PATTERN (V S A P)
+        DEFINE
+            V AS V.action = 'view',
+            S AS S.action = 'scroll',
+            A AS A.action = 'add_to_cart',
+            P AS P.action = 'purchase'
+    ) AS T
+WHERE TIMESTAMPDIFF(SECOND, T.start_time, T.end_time) <= 1;
+
+-- 3. the fraudulent-transactions topic to Iceberg
+INSERT INTO glue_catalog.clickstream_db.fraudulent_transactions
+SELECT user_id, product_id, start_time, end_time, duration_sec
+FROM default_catalog.default_database.fraudulent_transactions_source;
