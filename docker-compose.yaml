@@ -180,8 +180,10 @@ services:
     environment:
       KAFKA_BROKER: "broker:29092"
       KAFKA_TOPIC: "clickstream"
+      CUSTOMERS_TOPIC: "customers"
       CLIENT_ID: "clickstream-generator-1"
       USER_POOL_SIZE: 10
+      FRAUD_USER_COUNT: 3
       PRODUCT_POOL_SIZE: 20
 
 

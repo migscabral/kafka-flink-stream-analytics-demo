@@ -128,7 +128,7 @@ docker exec -it broker kafka-topics.sh \
   --config retention.ms=864000000
 ```
 
-2. Start the generator:
+2. Start the generator (rebuild the image first if the generator code changed). It also writes one profile per user (`user_id`, `first_name`, `last_name`, `email`, `mobile`) to the `customers` topic, keyed by `user_id`, once at startup:
 ```
 docker-compose --profile datagen up -d --force-recreate
 ```
@@ -151,7 +151,7 @@ Notes:
 
 A flow is fraudulent when view, scroll, add to cart and purchase complete within 1 second.
 
-1. Create the topic (optional; the broker also auto-creates it on first write):
+1. Create the topic before starting the streaming job. This is required: the job both writes to the topic and reads it back, and Flink's Kafka source fails with `UnknownTopicOrPartitionException` if the topic does not exist (a fraud record is only written, and the topic only auto-created, after the first fraud flow). The broker has no volume, so recreating it deletes all topics and you must create this one again:
 ```
 docker exec -it broker kafka-topics.sh \
   --create \
@@ -162,9 +162,9 @@ docker exec -it broker kafka-topics.sh \
   --config retention.ms=864000000
 ```
 
-2. Create the tables: in Zeppelin, run the paragraphs under "7. Fraudulent transactions" in `clickstream-analysis.flink.sql` (the Kafka sink table, the Kafka source table and the Iceberg table).
+2. Create the tables: in Zeppelin, run the paragraphs under "7. Fraudulent transactions" in `clickstream-analysis.flink.sql` (the Kafka sink and source tables for the `fraudulent-transactions` topic, the `customers` table, the `customers_latest` view and the enriched Iceberg table). The generator must be running so the `customers` topic has data.
 
-3. Start the streaming job: run the paragraphs under "Streaming jobs" at the end of the SQL file: the checkpoint setting, then the single `%flink.ssql(runAsOne=true)` paragraph. It submits the three `INSERT INTO` statements (clickstream to Iceberg, fraudulent flows to Kafka, Kafka to Iceberg) as one Flink job. The paragraph stays in the Running state until you cancel it. Separate `INSERT INTO` paragraphs did not run in parallel in Zeppelin: the second one stayed Pending.
+3. Start the streaming job: run the paragraphs under "Streaming jobs" at the end of the SQL file: the checkpoint setting, then the single `%flink.ssql(runAsOne=true)` paragraph. It submits the three `INSERT INTO` statements (clickstream to Iceberg, fraudulent flows to Kafka, and fraudulent flows joined with customers to Iceberg) as one Flink job. The paragraph stays in the Running state until you cancel it. Separate `INSERT INTO` paragraphs did not run in parallel in Zeppelin: the second one stayed Pending.
 
 4. Read the output:
 ```
@@ -176,7 +176,7 @@ docker exec -it broker kafka-console-consumer.sh \
 
 ## 8. Query the Iceberg tables with DuckDB
 
-Tested with DuckDB 1.5.6. The tables are `glue_catalog.clickstream_db.clickstream_events` and `glue_catalog.clickstream_db.fraudulent_transactions`.
+Tested with DuckDB 1.5.6. The tables are `glue_catalog.clickstream_db.clickstream_events` and `glue_catalog.clickstream_db.fraudulent_transactions_enriched`.
 
 1. Attach the Glue catalog:
 ```sql
@@ -199,7 +199,7 @@ ATTACH '<ACCOUNT_ID>' AS glue_catalog (TYPE iceberg, ENDPOINT_TYPE glue);
 ```sql
 SHOW ALL TABLES;
 SELECT * FROM glue_catalog.clickstream_db.clickstream_events LIMIT 10;
-SELECT * FROM glue_catalog.clickstream_db.fraudulent_transactions LIMIT 10;
+SELECT * FROM glue_catalog.clickstream_db.fraudulent_transactions_enriched LIMIT 10;
 ```
 
 `ATTACH` calls the Glue Iceberg REST endpoint, which needs `glue:GetCatalog` on the IAM user (included in the policy file). Do not save the keys in a file you commit.
@@ -224,7 +224,7 @@ Use this to delete everything and start over. Run the steps in this order.
 3. Or delete them with the AWS CLI instead (the tables first, then the database, then the files in S3):
 ```
 aws glue delete-table --region <region> --database-name clickstream_db --name clickstream_events
-aws glue delete-table --region <region> --database-name clickstream_db --name fraudulent_transactions
+aws glue delete-table --region <region> --database-name clickstream_db --name fraudulent_transactions_enriched
 aws glue delete-database --region <region> --name clickstream_db
 aws s3 rm s3://<bucket>/warehouse/ --recursive
 ```
@@ -234,6 +234,7 @@ Check for leftovers with `aws s3 ls s3://<bucket>/warehouse/ --recursive`. The I
 ```
 docker exec -it broker kafka-topics.sh --delete --topic clickstream --bootstrap-server broker:9092
 docker exec -it broker kafka-topics.sh --delete --topic fraudulent-transactions --bootstrap-server broker:9092
+docker exec -it broker kafka-topics.sh --delete --topic customers --bootstrap-server broker:9092
 docker exec -it broker kafka-topics.sh --delete --topic sanity-test --bootstrap-server broker:9092
 ```
 Then create `clickstream` again as in section 5.
@@ -257,3 +258,4 @@ docker-compose --profile core up -d
 | Glue `AccessDenied` (for example `DeleteDatabase`, `GetCatalog`) | The IAM policy is missing an action or resource. Use the policy file in `aws/`. |
 | DuckDB `ATTACH` returns 403 | The IAM user lacks `glue:GetCatalog` or S3 access to the bucket. Check the policy. |
 | New Flink job stays waiting | No free task slot. The task manager has 8 (`taskmanager.numberOfTaskSlots`). |
+| Job restarts with `UnknownTopicOrPartitionException` for `fraudulent-transactions` | The topic does not exist (recreating the broker deletes it). Create it as in section 7, step 1. The job recovers on its next restart attempt. |

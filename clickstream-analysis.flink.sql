@@ -151,6 +151,7 @@ stenv.asInstanceOf[org.apache.flink.table.api.internal.TableEnvironmentImpl]
 %flink.ssql
 DROP TABLE IF EXISTS glue_catalog.clickstream_db.clickstream_events;
 DROP TABLE IF EXISTS glue_catalog.clickstream_db.fraudulent_transactions;
+DROP TABLE IF EXISTS glue_catalog.clickstream_db.fraudulent_transactions_enriched;
 DROP DATABASE IF EXISTS glue_catalog.clickstream_db;
 
 -- Clean start for the Flink session tables (Kafka topics are not deleted).
@@ -158,6 +159,8 @@ DROP DATABASE IF EXISTS glue_catalog.clickstream_db;
 %flink.ssql
 DROP TABLE IF EXISTS fraudulent_transactions_source;
 DROP TABLE IF EXISTS fraudulent_transactions;
+DROP VIEW IF EXISTS customers_latest;
+DROP TABLE IF EXISTS customers;
 
 %flink.ssql
 CREATE DATABASE IF NOT EXISTS glue_catalog.clickstream_db;
@@ -191,7 +194,8 @@ CREATE TABLE IF NOT EXISTS fraudulent_transactions (
     'json.timestamp-format.standard' = 'ISO-8601'
 );
 
--- Fraudulent transactions to Iceberg tables (the source table reads back the fraudulent-transactions Kafka topic)
+-- Kafka source: reads the fraudulent-transactions topic back for the customers join.
+-- The topic must exist before the streaming job starts, or the source fails (see notes.md section 7, step 1).
 
 %flink.ssql
 CREATE TABLE IF NOT EXISTS fraudulent_transactions_source (
@@ -210,13 +214,48 @@ CREATE TABLE IF NOT EXISTS fraudulent_transactions_source (
     'json.timestamp-format.standard' = 'ISO-8601'
 );
 
+-- Fraudulent transactions joined with customers (written to Iceberg)
+-- The generator writes each customer profile to the customers topic at startup, and again on every restart.
+-- The view keeps only the first row per user_id, which stays append-only so the join output can be appended to Iceberg.
+-- A regular join keeps both sides in state; set table.exec.state.ttl if the streams grow large.
+
 %flink.ssql
-CREATE TABLE IF NOT EXISTS glue_catalog.clickstream_db.fraudulent_transactions (
+CREATE TABLE IF NOT EXISTS customers (
+    user_id STRING,
+    first_name STRING,
+    last_name STRING,
+    email STRING,
+    mobile STRING,
+    proc_time AS PROCTIME()
+) WITH (
+    'connector' = 'kafka',
+    'topic' = 'customers',
+    'properties.bootstrap.servers' = 'broker:29092',
+    'properties.group.id' = 'customers_reader',
+    'scan.startup.mode' = 'earliest-offset',
+    'format' = 'json'
+);
+
+%flink.ssql
+CREATE VIEW IF NOT EXISTS customers_latest AS
+SELECT user_id, first_name, last_name, email, mobile
+FROM (
+    SELECT *, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY proc_time ASC) AS row_num
+    FROM customers
+)
+WHERE row_num = 1;
+
+%flink.ssql
+CREATE TABLE IF NOT EXISTS glue_catalog.clickstream_db.fraudulent_transactions_enriched (
     user_id STRING,
     product_id STRING,
     start_time TIMESTAMP_LTZ(3),
     end_time TIMESTAMP_LTZ(3),
-    duration_sec BIGINT
+    duration_sec BIGINT,
+    first_name STRING,
+    last_name STRING,
+    email STRING,
+    mobile STRING
 );
 
 -- Streaming jobs (run these last, after all the tables above exist)
@@ -257,7 +296,18 @@ FROM clickstream
     ) AS T
 WHERE TIMESTAMPDIFF(SECOND, T.start_time, T.end_time) <= 1;
 
--- 3. the fraudulent-transactions topic to Iceberg
-INSERT INTO glue_catalog.clickstream_db.fraudulent_transactions
-SELECT user_id, product_id, start_time, end_time, duration_sec
-FROM default_catalog.default_database.fraudulent_transactions_source;
+-- 3. fraudulent transactions joined with customers to Iceberg
+INSERT INTO glue_catalog.clickstream_db.fraudulent_transactions_enriched
+SELECT
+    f.user_id,
+    f.product_id,
+    f.start_time,
+    f.end_time,
+    f.duration_sec,
+    c.first_name,
+    c.last_name,
+    c.email,
+    c.mobile
+FROM default_catalog.default_database.fraudulent_transactions_source AS f
+JOIN default_catalog.default_database.customers_latest AS c
+    ON f.user_id = c.user_id;
